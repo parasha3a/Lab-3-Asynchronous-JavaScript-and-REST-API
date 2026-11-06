@@ -67,7 +67,8 @@ const fetchJson = async (url, options) => {
   }
 
   try {
-    return await response.json();
+    const data = await response.json();
+    return { status: response.status, data };
   } catch {
     throw createError("PARSE_ERROR");
   }
@@ -78,11 +79,11 @@ const loadPosts = async () => {
   showMessage("Загружаем публикации...", "info");
 
   try {
-    const posts = await fetchJson(POSTS_URL);
+    const { status, data: posts } = await fetchJson(POSTS_URL);
     renderPosts(posts);
-    showMessage(`Загружено публикаций: ${posts.length}.`, "success");
+    showMessage(`Код ответа: ${status}. Загружено публикаций: ${posts.length}.`, "success");
   } catch (error) {
-    showMessage(`Не удалось загрузить публикации. Код ошибки: ${error.code}. Нажмите кнопку ещё раз.`, "error");
+    showMessage(`Код ошибки: ${error.code}`, "error");
   } finally {
     setBusy(loadButton, false);
   }
@@ -92,19 +93,19 @@ const validatePost = (title, body) => {
   const errors = {};
 
   if (title === "") {
-    errors.title = "Введите заголовок.";
+    errors.title = "EMPTY_TITLE";
   }
 
   if (body === "") {
-    errors.body = "Введите текст публикации.";
+    errors.body = "EMPTY_BODY";
   }
 
   return errors;
 };
 
 const showFieldErrors = (errors) => {
-  titleError.textContent = errors.title || "";
-  bodyError.textContent = errors.body || "";
+  titleError.textContent = errors.title ? `Код ошибки: ${errors.title}` : "";
+  bodyError.textContent = errors.body ? `Код ошибки: ${errors.body}` : "";
   titleInput.classList.toggle("invalid", Boolean(errors.title));
   bodyInput.classList.toggle("invalid", Boolean(errors.body));
 };
@@ -118,7 +119,7 @@ const createPost = async (event) => {
   showFieldErrors(errors);
 
   if (Object.keys(errors).length > 0) {
-    showMessage("Заполните все поля, чтобы отправить публикацию.", "error");
+    showMessage("Код ошибки: FORM_INVALID", "error");
     return;
   }
 
@@ -126,7 +127,7 @@ const createPost = async (event) => {
   showMessage("Отправляем публикацию...", "info");
 
   try {
-    const created = await fetchJson(CREATE_URL, {
+    const { status, data: created } = await fetchJson(CREATE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, body, userId: USER_ID }),
@@ -136,9 +137,9 @@ const createPost = async (event) => {
     emptyHint.hidden = true;
     form.reset();
     showFieldErrors({});
-    showMessage(`Публикация создана. ID: ${created.id}, заголовок: «${created.title}».`, "success");
+    showMessage(`Код ответа: ${status}. Публикация создана. ID: ${created.id}, заголовок: «${created.title}».`, "success");
   } catch (error) {
-    showMessage(`Не удалось создать публикацию. Код ошибки: ${error.code}. Попробуйте ещё раз.`, "error");
+    showMessage(`Код ошибки: ${error.code}`, "error");
   } finally {
     setBusy(submitButton, false);
   }
