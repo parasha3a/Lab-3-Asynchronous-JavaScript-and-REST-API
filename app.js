@@ -47,23 +47,29 @@ const renderPosts = (posts) => {
   emptyHint.hidden = posts.length > 0;
 };
 
+const createError = (code) => {
+  const error = new Error(String(code));
+  error.code = code;
+  return error;
+};
+
 const fetchJson = async (url, options) => {
   let response;
 
   try {
     response = await fetch(url, options);
   } catch {
-    throw new Error("Нет связи с сервером. Проверьте подключение к интернету.");
+    throw createError("NETWORK_ERROR");
   }
 
   if (!response.ok) {
-    throw new Error(`Сервер вернул ошибку HTTP ${response.status}.`);
+    throw createError(response.status);
   }
 
   try {
     return await response.json();
   } catch {
-    throw new Error("Сервер вернул данные в неверном формате.");
+    throw createError("PARSE_ERROR");
   }
 };
 
@@ -76,7 +82,7 @@ const loadPosts = async () => {
     renderPosts(posts);
     showMessage(`Загружено публикаций: ${posts.length}.`, "success");
   } catch (error) {
-    showMessage(`Не удалось загрузить публикации. ${error.message} Нажмите кнопку ещё раз.`, "error");
+    showMessage(`Не удалось загрузить публикации. Код ошибки: ${error.code}. Нажмите кнопку ещё раз.`, "error");
   } finally {
     setBusy(loadButton, false);
   }
@@ -132,7 +138,7 @@ const createPost = async (event) => {
     showFieldErrors({});
     showMessage(`Публикация создана. ID: ${created.id}, заголовок: «${created.title}».`, "success");
   } catch (error) {
-    showMessage(`Не удалось создать публикацию. ${error.message} Попробуйте ещё раз.`, "error");
+    showMessage(`Не удалось создать публикацию. Код ошибки: ${error.code}. Попробуйте ещё раз.`, "error");
   } finally {
     setBusy(submitButton, false);
   }
